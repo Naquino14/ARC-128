@@ -1,0 +1,10 @@
+
+*.dll
+*.json
+*.exe
+*.pdb
+*.cache
+*.txt
+*.editorconfig
+*.targets
+*.props
