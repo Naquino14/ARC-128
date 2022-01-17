@@ -1,12 +1,9 @@
 ﻿#pragma skideeSkidoo wowie
 // Copyright 2022 Nathaniel Aquino, All rights reserved.
-// ARC128 version 0???? reminder that this is a sandbox
-
-// TODO: get rid of object serialization
+// ARC128 version 1
 
 using System.Text;
 using c = System.Console;
-using System.Runtime.InteropServices;
 
 namespace ARC
 {
@@ -78,12 +75,14 @@ namespace ARC
             this.data = Encoding.ASCII.GetBytes(data);
         }
 
-        #pragma warning restore IDE0003
+#pragma warning restore IDE0003
         #endregion
 
 
         #region encryption
         #pragma warning disable IDE0003
+
+        #region overloads
 
         /// <summary>
         /// Encrypts supplied data using a supplied key and a supplied or auto-generated initialization vector.
@@ -111,7 +110,6 @@ namespace ARC
         /// <exception cref="ArgumentNullException">Exception thrown when data or the key property is empty.</exception>
         public byte[] Encrypt(string message, byte[]? key = null, byte[]? iv = null)
         { return _Encrypt(S2B(message), key ?? this.key ?? throw new ArgumentNullException(kEx), iv ?? (this.iv ??= GenerateIV())); }
-
 
         public byte[] Encrypt(string message, string? key = null, string? iv = null)
         {
@@ -145,8 +143,11 @@ namespace ARC
         public byte[] Encrypt(byte[] data, byte[]? key = null, byte[]? iv = null)
         { return _Encrypt(data, key ?? this.key ?? throw new ArgumentNullException(kEx), iv ?? (this.iv ??= GenerateIV())); }
 
-        private byte[] _Encrypt(in byte[] data, in byte[] key, in byte[] iv)
+        #endregion
+
+        private byte[] _Encrypt(in byte[] data, in byte[] key, in byte[] iv) // cfb type encryption
         {
+            var output = new byte[data.Length];
 
             /// for cfb, the IV gets tossed into the encryption first.
             /// the plaintext gets modded with the output, and then gets tossed into another encryption, 
@@ -155,11 +156,9 @@ namespace ARC
             /// obv thats computationally expensive but safer? i guess
             /// IV => ARC() => mod(out, subblock 1) => ARC() => mod(out, subblock 2) => ARC() => mod(out, subblock 3) => ect....
 
-            c.Write("Incoming data: ");
-            foreach (var byt in data)
-                c.Write(byt.ToString("X"));
-            c.WriteLine($" | Size: {data.Length} bytes\n");
-            //return data;
+            PrintArray(data, "Incoming data");
+
+            c.WriteLine($"Data size: {data.Length} | Total FB: {Math.Ceiling((double)(data.Length / 16))}");
             byte[] prevCtx = new byte[readCount];
 
             #region major compute loop
@@ -172,24 +171,26 @@ namespace ARC
                 #region context block read and setup
 
                 // get next block
-                int targetIndex = computationIteration * readCount, 
-                    toRead = data.Length - readCount * computationIteration,
-                    targetLength;
-                var ctx = new byte[readCount];
-                if (toRead < readCount)
-                {
-                    targetLength = toRead;
-                    computeFlag = false;
-                }
-                else
-                    targetLength = readCount;
-                Array.Copy(data, targetIndex, ctx, 0, readCount - (readCount - targetLength));
+                
+                var ctx = GetBlock(data, computationIteration, ref computeFlag);
 
-                // mod iv at ci 0 with uhe ctx i think?
+                //PrintArray(ctx, $"Pre otp CTX for round {computationIteration} | Length: {ctx.Length}");
+
+                // otp iv at ci 0 with uhe ctx i think?
                 if (computationIteration != 0)
                     ctx = OTPArray(ctx, prevCtx);
                 else
                     ctx = OTPArray(ctx, iv);
+
+                #endregion
+
+                //PrintArray(ctx, $"Post CTX for round {computationIteration} | Length: {ctx.Length}");
+
+                #region encryption
+
+                /// method:
+                /// TODO: rewrite method, toss duplicate code into blend func
+                /// also TODO: blend func 🤨
 
                 #endregion
 
@@ -214,7 +215,6 @@ namespace ARC
         #endregion
 
 
-
         #region generators
 
         public byte[] GenerateIV()
@@ -231,6 +231,23 @@ namespace ARC
         #endregion
 
         #region methods and funcs
+
+        private byte[] GetBlock(byte[] data, int ci, ref bool computeFlag)
+        {
+            int targetIndex = ci * readCount,
+                    toRead = data.Length - readCount * ci,
+                    targetLength;
+            var ctx = new byte[readCount];
+            if (toRead < readCount)
+            {
+                targetLength = toRead;
+                computeFlag = false;
+            }
+            else
+                targetLength = readCount;
+            Array.Copy(data, targetIndex, ctx, 0, readCount - (readCount - targetLength));
+            return ctx;
+        }
 
         internal byte[] ModComp(int s, byte[] a)
         {

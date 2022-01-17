@@ -1,4 +1,5 @@
-﻿using System;
+﻿#define deez_nuts
+using System;
 using c = System.Console;
 using ARC;
 using System.Security.Cryptography;
@@ -18,20 +19,23 @@ namespace Sandbox
             //    // nah this is inconvenient to use
             //}
 
-            var arc = new ARC128();
-            c.Write("IV: ");
-            var iv = arc.GenerateIV();
-            foreach (var x in iv)
-                c.Write(x.ToString("X"));
-            c.WriteLine($" Size: {iv.Length} bytes");
+            //var arc = new ARC128();
+            //c.Write("IV: ");
+            //var iv = arc.GenerateIV();
+            //foreach (var x in iv)
+            //    c.Write(x.ToString("X"));
+            //c.WriteLine($" Size: {iv.Length} bytes");
 
-            c.Write(" K: ");
-            var key = arc.GenerateKey();
-            foreach (var y in key)
-                c.Write(y.ToString("X"));
-            c.WriteLine($" Size: {key.Length} bytes");
+            //c.Write(" K: ");
+            //var key = arc.GenerateKey();
+            //foreach (var y in key)
+            //    c.Write(y.ToString("X"));
+            //c.WriteLine($" Size: {key.Length} bytes");
 
-            arc.Encrypt("This is random data loleyufucbgfkuyvjsbgdfuikxkhfvbaskiuzghszdkfighawoieuskjghrfpiWUGEPI7FGwyWP9YUERP98SYGPIAHYEPSRDGYUAPEIHY", key, iv);
+            //arc.Encrypt("This is random data lol eyufucbgfkuyvjsbgdfuikxkhfvbaskiuzghszdkfighawoieuskjghrfpiWUGEPI7FGwyWP9YUERP98SYGPIAHYEPSRDGYUAPEIHY", key, iv);
+
+            var outgoing = ARCMCLT.GenerateLookup();
+            c.WriteLine(outgoing.msg);
         }
     }
 }
