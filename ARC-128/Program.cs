@@ -34,8 +34,11 @@ namespace Sandbox
 
             //arc.Encrypt("This is random data lol eyufucbgfkuyvjsbgdfuikxkhfvbaskiuzghszdkfighawoieuskjghrfpiWUGEPI7FGwyWP9YUERP98SYGPIAHYEPSRDGYUAPEIHY", key, iv);
 
-            var outgoing = ARCMCLT.GenerateLookup();
-            c.WriteLine(outgoing.msg);
+            var funcSB = ARCLT.GenerateSBLT();
+            c.WriteLine(funcSB.msg);
+
+            var funcMB = ARCLT.GenerateMBLT();
+            c.WriteLine(funcMB.msg);
         }
     }
 }

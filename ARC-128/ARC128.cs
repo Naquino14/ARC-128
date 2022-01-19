@@ -147,7 +147,9 @@ namespace ARC
 
         private byte[] _Encrypt(in byte[] data, in byte[] key, in byte[] iv) // cfb type encryption
         {
-            var output = new byte[data.Length];
+            // TODO: Pad data with 0x0?
+            int fb = (data.Length / 16 * 16) + 1;
+            var output = new byte[fb]; // tRuSt Me GuYs ItS sUpPoSeD tO dO tHiS
 
             /// for cfb, the IV gets tossed into the encryption first.
             /// the plaintext gets modded with the output, and then gets tossed into another encryption, 
@@ -155,11 +157,25 @@ namespace ARC
             /// im pretty sure as well that the IV, and each subblock can be ciphered multiple times before moving onto the next subblock. 
             /// obv thats computationally expensive but safer? i guess
             /// IV => ARC() => mod(out, subblock 1) => ARC() => mod(out, subblock 2) => ARC() => mod(out, subblock 3) => ect....
+            /// regarding a previous comment abt multiple ciphers, yes, its allowed, and it will be done 9 times...
+            /// I also just realized I forgot completely about key scheduling.... thats kind of a problem, but im gonna focus on it a little bit later.
+            /// 
+
+            /// I started drafing some sub-functions as well.
+            /// Start: GetBlock(), can be either the IV or the previous contextual block
+            /// start 9x loop
+            /// ARCSBLT(a) := Sub Bytes Lookup Table => b | Confusion
+            /// ARCBMGR(b) := Byte Merry Go Round    => c | Diffusion
+            /// ARCPMB(c)  := Permutate Bytes        => d | Diffusion
+            /// OTPArray(d, scheduledKey)            => f | Mix Key
+            /// repeat                               => a
 
             PrintArray(data, "Incoming data");
 
             c.WriteLine($"Data size: {data.Length} | Total FB: {Math.Ceiling((double)(data.Length / 16))}");
-            byte[] prevCtx = new byte[readCount];
+
+            byte[] prevCtx = new byte[readCount], mf;
+            var keys = Schedule(key);
 
             #region major compute loop
 
@@ -171,8 +187,8 @@ namespace ARC
                 #region context block read and setup
 
                 // get next block
-                
-                var ctx = GetBlock(data, computationIteration, ref computeFlag);
+
+                var ctx = GetBlock(data, computationIteration, ref computeFlag); // heads up, this auto-pads the incoming context with 0x0
 
                 //PrintArray(ctx, $"Pre otp CTX for round {computationIteration} | Length: {ctx.Length}");
 
@@ -186,21 +202,19 @@ namespace ARC
 
                 //PrintArray(ctx, $"Post CTX for round {computationIteration} | Length: {ctx.Length}");
 
-                #region encryption
+                // get MF results
+                mf = ARCMF(ctx, keys); // TODO: replaced with scheduled key
 
-                /// method:
-                /// TODO: rewrite method, toss duplicate code into blend func
-                /// also TODO: blend func 🤨
-
-                #endregion
+                // otp results with data ctx, and toss it into the output
+                Array.Copy(OTPArray(ctx, mf), 0, output, computationIteration * 16, 16); 
 
                 prevCtx = ctx;
                 computationIteration++;
             }
 
             #endregion
-            throw new NotImplementedException();
 
+            return output;
         }
 
         #pragma warning restore IDE0003
@@ -231,6 +245,21 @@ namespace ARC
         #endregion
 
         #region methods and funcs
+
+        private byte[] ARCMF(in byte[] state, in byte[][] keys)
+        {
+            throw new NotImplementedException(); // TODO: this
+        }
+
+        private byte[][] Schedule(in byte[] key)
+        {
+            byte[][] schedule = new byte[9][];
+            for (int i = 0; i < 9; i++)
+            {
+                throw new NotImplementedException(); // TODO: key scheduling algorithm
+            }
+            return schedule;
+        }
 
         private byte[] GetBlock(byte[] data, int ci, ref bool computeFlag)
         {
