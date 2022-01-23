@@ -46,10 +46,13 @@ namespace ARC
             return (output, table);
         }
 
+        /// <summary>
+        /// Key Scheduking Lookup Table Version 1
+        /// </summary>
         internal static readonly byte[] KSLTv1 = new byte[]
         {
 
-        }
+        };
 
         internal static (string msg, byte[] vs) GenerateKSLT()
         {
@@ -62,6 +65,13 @@ namespace ARC
             }
 
             return (output, table);
+        }
+
+        internal static void Permutate(ref byte[] io, in byte[] table, int seed =  1)
+        {
+            seed = (seed == 0) ? 1 : seed;
+            for (int i = 0; i <= io.Length; i++)
+                io[i] = (byte)((io[i] * seed % 256) ^ table[i]);
         }
     }
 }

@@ -27,6 +27,17 @@ namespace ARC
 
         private const int readCount = 16;
 
+        private const byte KSRcon1 = 0x05, 
+            KSRcon2 = 0x07, 
+            KSRcon3 = 0x0A, 
+            KSRcon4 = 0x3D, 
+            KSRcon5 = 0x4F, 
+            KSRcon6 = 0x5D, 
+            KSRcon7 = 0xAB, 
+            KSRcon8 = 0xEF;
+
+        private readonly byte[] KSRcon = new byte[] { KSRcon1, KSRcon2, KSRcon3, KSRcon4, KSRcon5, KSRcon6, KSRcon7, KSRcon8 };
+
         #endregion
 
         #region constructors
@@ -148,8 +159,8 @@ namespace ARC
         private byte[] _Encrypt(in byte[] data, in byte[] key, in byte[] iv) // cfb type encryption
         {
             // TODO: Pad data with 0x0?
-            int fb = (data.Length / 16 * 16) + 1;
-            var output = new byte[fb]; // tRuSt Me GuYs ItS sUpPoSeD tO dO tHiS
+            int fbpp = (int)Math.Ceiling((double)(data.Length / 16)) + 1;
+            var output = new byte[fbpp];
 
             /// for cfb, the IV gets tossed into the encryption first.
             /// the plaintext gets modded with the output, and then gets tossed into another encryption, 
@@ -172,10 +183,11 @@ namespace ARC
 
             PrintArray(data, "Incoming data");
 
-            c.WriteLine($"Data size: {data.Length} | Total FB: {Math.Ceiling((double)(data.Length / 16))}");
+            c.WriteLine($"Data size: {data.Length} | Total FB: {(int)Math.Ceiling((double)(data.Length / 16))}");
 
-            byte[] prevCtx = new byte[readCount], mf;
-            var keys = Schedule(key);
+            byte[]? prevCtx = null;
+            byte[] mf;
+            
 
             #region major compute loop
 
@@ -188,22 +200,19 @@ namespace ARC
 
                 // get next block
 
-                var ctx = GetBlock(data, computationIteration, ref computeFlag); // heads up, this auto-pads the incoming context with 0x0
+                var ctx = GetBlock(data, computationIteration, ref computeFlag); // auto pads with 0x0? i dont think i told it to do that
 
-                //PrintArray(ctx, $"Pre otp CTX for round {computationIteration} | Length: {ctx.Length}");
+                PrintArray(ctx, $"CTX for round {computationIteration} | Length: {ctx.Length}");
 
-                // otp iv at ci 0 with uhe ctx i think?
-                if (computationIteration != 0)
-                    ctx = OTPArray(ctx, prevCtx);
-                else
-                    ctx = OTPArray(ctx, iv);
+                // get keys
+                var keys = Schedule(key, iv, computationIteration);
+                for (int i = 0; i < keys.Length; i++)
+                    PrintArray(keys[i], $"Scheduled key {i + 1}");
 
                 #endregion
 
-                //PrintArray(ctx, $"Post CTX for round {computationIteration} | Length: {ctx.Length}");
-
                 // get MF results
-                mf = ARCMF(ctx, keys); // TODO: replaced with scheduled key
+                mf = ARCMF(prevCtx ?? iv, keys); // at CI 0, prevCtx is null, so it defaults to iv like its supposed to...
 
                 // otp results with data ctx, and toss it into the output
                 Array.Copy(OTPArray(ctx, mf), 0, output, computationIteration * 16, 16); 
@@ -251,14 +260,38 @@ namespace ARC
             throw new NotImplementedException(); // TODO: this
         }
 
-        private byte[][] Schedule(in byte[] key)
+        internal byte[][] Schedule(in byte[] key, in byte[] iv, int ci)
         {
-            byte[][] schedule = new byte[9][];
-            for (int i = 0; i < 9; i++)
+            var schedule = new byte[9][];
+            byte[]? prevCtx = null;
+            schedule[0] = key;
+            for (int i = 1; i <= 8; i++)
             {
-                throw new NotImplementedException(); // TODO: key scheduling algorithm
+                /// key scheduling must use: 
+                /// KSRcon# (Key Scheduling Round Constant)
+                /// CI (Computation Iteration)
+                /// 2 unique? functions, 
+                /// here ill use 1 byte left rotation like AES
+                /// and a new function Key Scheduling Column Rotator, 
+                /// which from here on out i will call KSRC(). They will
+                /// be called in reverse respective order.
+                /// The sutucture is as follows:
+                /// The inverted IV gets otped with the first key, which is, also key 0
+                /// and gets thrown in KSRC(). Then <<< 1.
+                /// After that, the whole scheduled pre-key gets tossed into an irreversible lookup table.
+
+                schedule[i] = OTPArray(prevCtx ?? ReverseArray(iv), key);
+                KSRC(ref schedule[i]);
+                schedule[i] = RotLeft(schedule[i], 1);
+                ARCLT.Permutate(ref schedule[i], ARCLT.KSLTv1, ci * KSRcon[i]);
+                prevCtx = schedule[i];
             }
             return schedule;
+        }
+
+        private void KSRC(ref byte[] preSK)
+        {
+
         }
 
         private byte[] GetBlock(byte[] data, int ci, ref bool computeFlag)
@@ -310,7 +343,23 @@ namespace ARC
         private byte[] S2B(string a)
         { return Encoding.ASCII.GetBytes(a); }
 
+        private byte[] KSCR(byte[] a, int iterations = 1)
+        {
+            // see sheet for notes on how this works
+            for (int i = 0; i <= iterations; i++)
+            {
+
+            }
+            throw new NotImplementedException();
+        }
+
         #region Array Funcs
+
+        private byte[] ReverseArray(byte[] a)
+        {
+            Array.Reverse(a);
+            return a;
+        }
 
         private byte[] FCArray(byte[] input, int s, int c)
         {

@@ -19,26 +19,27 @@ namespace Sandbox
             //    // nah this is inconvenient to use
             //}
 
-            //var arc = new ARC128();
-            //c.Write("IV: ");
-            //var iv = arc.GenerateIV();
-            //foreach (var x in iv)
-            //    c.Write(x.ToString("X"));
-            //c.WriteLine($" Size: {iv.Length} bytes");
+            var arc = new ARC128();
+            c.Write("IV: ");
+            var iv = arc.GenerateIV();
+            foreach (var x in iv)
+                c.Write(x.ToString("X"));
+            c.WriteLine($" Size: {iv.Length} bytes");
 
-            //c.Write(" K: ");
-            //var key = arc.GenerateKey();
-            //foreach (var y in key)
-            //    c.Write(y.ToString("X"));
-            //c.WriteLine($" Size: {key.Length} bytes");
+            c.Write(" K: ");
+            var key = arc.GenerateKey();
+            foreach (var y in key)
+                c.Write(y.ToString("X"));
+            c.WriteLine($" Size: {key.Length} bytes");
 
-            //arc.Encrypt("This is random data lol eyufucbgfkuyvjsbgdfuikxkhfvbaskiuzghszdkfighawoieuskjghrfpiWUGEPI7FGwyWP9YUERP98SYGPIAHYEPSRDGYUAPEIHY", key, iv);
+            var result = arc.Encrypt("This is random data lol eyufucbgfkuyvjsbgdfuikxkhfvbaskiuzghszdkfighawoieuskjghrfpiWUGEPI7FGwyWP9YUERP98SYGPIAHYEPSRDGYUAPEIHY", key, iv);
 
-            var funcSB = ARCLT.GenerateSBLT();
-            c.WriteLine(funcSB.msg);
+            //var funcSB = ARCLT.GenerateSBLT();
+            //c.WriteLine(funcSB.msg);
 
-            var funcMB = ARCLT.GenerateMBLT();
-            c.WriteLine(funcMB.msg);
+            //var funcMB = ARCLT.GenerateMBLT();
+            //c.WriteLine(funcMB.msg);
+            arc.Schedule(key, iv, 0);
         }
     }
 }
