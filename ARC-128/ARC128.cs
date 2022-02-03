@@ -257,10 +257,23 @@ namespace ARC
 
         private byte[] ARCMF(in byte[] state, in byte[][] keys) // Main Function
         {
+            #region Mix Bytes Lookup Table
+
+            #endregion
+
+            #region Byte Merry Go Round
+
+            #endregion
+
+            #region Permutate Bytes
+
+            #endregion
+
+
             throw new NotImplementedException(); // TODO: this
         }
 
-        internal byte[][] Schedule(in byte[] key, in byte[] iv, int ci)
+        private byte[][] Schedule(in byte[] key, in byte[] iv, int ci)
         {
             var schedule = new byte[9][];
             byte[]? prevCtx = null;

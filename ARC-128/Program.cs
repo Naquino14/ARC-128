@@ -37,17 +37,16 @@ namespace Sandbox
             #region lookup table generation
 
             //var funcSB = ARCLT.GenerateSBLT();
-            //c.WriteLine(funcSB.msg);
+            //c.WriteLine($"SBLT: {funcSB.msg}\n");
 
             //var funcMB = ARCLT.GenerateMBLT();
-            //c.WriteLine(funcMB.msg);
+            //c.WriteLine($"MBLT: {funcMB.msg}\n");
 
             //var funcKS = ARCLT.GenerateKSLT();
-            //c.WriteLine(funcKS.msg);
+            //c.WriteLine($"KSLT: {funcKS.msg}");
 
             #endregion
 
-            arc.Schedule(key, iv, 0);
         }
     }
 }
