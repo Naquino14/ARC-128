@@ -32,13 +32,21 @@ namespace Sandbox
                 c.Write(y.ToString("X"));
             c.WriteLine($" Size: {key.Length} bytes");
 
-            var result = arc.Encrypt("This is random data lol eyufucbgfkuyvjsbgdfuikxkhfvbaskiuzghszdkfighawoieuskjghrfpiWUGEPI7FGwyWP9YUERP98SYGPIAHYEPSRDGYUAPEIHY", key, iv);
+            //var result = arc.Encrypt("This is random data lol eyufucbgfkuyvjsbgdfuikxkhfvbaskiuzghszdkfighawoieuskjghrfpiWUGEPI7FGwyWP9YUERP98SYGPIAHYEPSRDGYUAPEIHY", key, iv);
+
+            #region lookup table generation
 
             //var funcSB = ARCLT.GenerateSBLT();
             //c.WriteLine(funcSB.msg);
 
             //var funcMB = ARCLT.GenerateMBLT();
             //c.WriteLine(funcMB.msg);
+
+            //var funcKS = ARCLT.GenerateKSLT();
+            //c.WriteLine(funcKS.msg);
+
+            #endregion
+
             arc.Schedule(key, iv, 0);
         }
     }

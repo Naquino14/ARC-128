@@ -27,16 +27,17 @@ namespace ARC
 
         private const int readCount = 16;
 
-        private const byte KSRcon1 = 0x05, 
-            KSRcon2 = 0x07, 
-            KSRcon3 = 0x0A, 
-            KSRcon4 = 0x3D, 
-            KSRcon5 = 0x4F, 
-            KSRcon6 = 0x5D, 
-            KSRcon7 = 0xAB, 
-            KSRcon8 = 0xEF;
+        private const byte KSRcon1 = 0x05,
+            KSRcon2 = 0x07,
+            KSRcon3 = 0x0A,
+            KSRcon4 = 0x3D,
+            KSRcon5 = 0x4F,
+            KSRcon6 = 0x5D,
+            KSRcon7 = 0xAB,
+            KSRcon8 = 0xEF,
+            KSRcon9 = 0xAB;
 
-        private readonly byte[] KSRcon = new byte[] { KSRcon1, KSRcon2, KSRcon3, KSRcon4, KSRcon5, KSRcon6, KSRcon7, KSRcon8 };
+        private readonly byte[] KSRcon = new byte[] { KSRcon1, KSRcon2, KSRcon3, KSRcon4, KSRcon5, KSRcon6, KSRcon7, KSRcon8, KSRcon9 };
 
         #endregion
 
@@ -128,13 +129,13 @@ namespace ARC
             if (!ReferenceEquals(key, null))
             {
                 var tocopy = Encoding.ASCII.GetBytes(key);
-                tocopy = ModComp(16, tocopy);
+                tocopy = BlockComp(16, tocopy);
                 Array.Copy(tocopy, 0, _key, 0, 16);
                 this.key = _key;
             }
             if (!ReferenceEquals(iv, null))
             {
-                Array.Copy(ModComp(16, Encoding.ASCII.GetBytes(iv)), 0, _iv, 0, 16);
+                Array.Copy(BlockComp(16, Encoding.ASCII.GetBytes(iv)), 0, _iv, 0, 16);
                 this.iv = _iv;
             }
             return _Encrypt(S2B(message), this.key ?? throw new ArgumentNullException(kEx), this.iv ??= GenerateIV());
@@ -237,7 +238,6 @@ namespace ARC
         //#pragma warning restore IDE0003
         #endregion
 
-
         #region generators
 
         public byte[] GenerateIV()
@@ -255,7 +255,7 @@ namespace ARC
 
         #region methods and funcs
 
-        private byte[] ARCMF(in byte[] state, in byte[][] keys)
+        private byte[] ARCMF(in byte[] state, in byte[][] keys) // Main Function
         {
             throw new NotImplementedException(); // TODO: this
         }
@@ -277,11 +277,11 @@ namespace ARC
                 /// be called in reverse respective order.
                 /// The sutucture is as follows:
                 /// The inverted IV gets otped with the first key, which is, also key 0
-                /// and gets thrown in KSRC(). Then <<< 1.
+                /// and gets thrown in KSRC() thru ci % 4 iterations. Then <<< 1.
                 /// After that, the whole scheduled pre-key gets tossed into an irreversible lookup table.
 
                 schedule[i] = OTPArray(prevCtx ?? ReverseArray(iv), key);
-                KSRC(ref schedule[i]);
+                KSCR(ref schedule[i], ci % 4);
                 schedule[i] = RotLeft(schedule[i], 1);
                 ARCLT.Permutate(ref schedule[i], ARCLT.KSLTv1, ci * KSRcon[i]);
                 prevCtx = schedule[i];
@@ -289,9 +289,28 @@ namespace ARC
             return schedule;
         }
 
-        private void KSRC(ref byte[] preSK)
+        private void KSCR(ref byte[] sk, int c) // Key Schedule Column Rotator
         {
-
+            var skc = new byte[sk.Length];
+            for (var i = 1; i <= c; i++)
+            {
+                sk[0] = skc[9];
+                sk[1] = skc[10];
+                sk[2] = skc[3];
+                sk[3] = skc[12];
+                sk[4] = skc[14];
+                sk[5] = skc[7];
+                sk[6] = skc[0];
+                sk[7] = skc[13];
+                sk[8] = skc[11];
+                sk[9] = skc[4];
+                sk[10] = skc[1];
+                sk[11] = skc[2];
+                sk[12] = skc[8];
+                sk[13] = skc[5];
+                sk[14] = skc[6];
+                sk[16] = skc[15];
+            }
         }
 
         private byte[] GetBlock(byte[] data, int ci, ref bool computeFlag)
@@ -311,7 +330,7 @@ namespace ARC
             return ctx;
         }
 
-        internal byte[] ModComp(int s, byte[] a)
+        internal byte[] BlockComp(int s, byte[] a) // Block Compressor
         {
             var o = new byte[s];
 
@@ -340,18 +359,8 @@ namespace ARC
             return o;
         }
 
-        private byte[] S2B(string a)
+        private byte[] S2B(string a) // String 2 Byte
         { return Encoding.ASCII.GetBytes(a); }
-
-        private byte[] KSCR(byte[] a, int iterations = 1)
-        {
-            // see sheet for notes on how this works
-            for (int i = 0; i <= iterations; i++)
-            {
-
-            }
-            throw new NotImplementedException();
-        }
 
         #region Array Funcs
 
@@ -361,7 +370,7 @@ namespace ARC
             return a;
         }
 
-        private byte[] FCArray(byte[] input, int s, int c)
+        private byte[] FCArray(byte[] input, int s, int c) // Fast Copy array
         {
             byte[] result = new byte[c];
             Array.Copy(input, s, result, 0, c);
@@ -376,7 +385,7 @@ namespace ARC
             return result;
         }
 
-        private byte[] OTPArray(byte[] input, byte[] key)
+        private byte[] OTPArray(byte[] input, byte[] key) // One Time Pad Array
         {
             byte[] result = new byte[input.Length];
             for (int i = 0; i < input.Length; i++)
