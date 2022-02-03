@@ -294,6 +294,7 @@ namespace ARC
             var skc = new byte[sk.Length];
             for (var i = 1; i <= c; i++)
             {
+                Array.Copy(sk, 0, skc, 0, sk.Length);
                 sk[0] = skc[9];
                 sk[1] = skc[10];
                 sk[2] = skc[3];
