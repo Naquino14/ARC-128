@@ -255,25 +255,61 @@ namespace ARC
 
         #region methods and funcs
 
-        private byte[] ARCMF(in byte[] state, in byte[][] keys) // Main Function
+        /// <summary>
+        /// Main Function
+        /// </summary>
+        /// <param name="state">Initial state, is either the IV or the previous contextual block.</param>
+        /// <param name="keys"></param>
+        /// <returns></returns>
+        internal byte[] ARCMF(in byte[] state, in byte[][] keys)
         {
-            #region Mix Bytes Lookup Table
-
-            #endregion
-
-            #region Byte Merry Go Round
-
-            #endregion
-
-            #region Permutate Bytes
-
-            #endregion
-
-
-            throw new NotImplementedException(); // TODO: this
+            var output = state;
+            for (int i = 0; i < 9; i++)
+            {
+                ARCLT.Permutate(ref output, ARCLT.MBLTv1, i);
+                ARCBMGR(ref output);
+                ARCLT.Permutate(ref output, ARCLT.SBLTv1, i);
+                output = OTPArray(output, keys[i]);
+            }
+            return output; 
         }
 
-        private byte[][] Schedule(in byte[] key, in byte[] iv, int ci)
+        /// <summary>
+        /// Byte Merry Go Round
+        /// </summary>
+        /// <param name="a"></param>
+        private void ARCBMGR(ref byte[] a)
+        {
+            var b = new byte[a.Length];
+            Array.Copy(a, 0, b, 0, a.Length);
+            a[0] = b[1];
+            a[1] = b[2];
+            a[2] = b[3];
+            a[3] = b[7];
+            a[4] = b[0];
+            a[5] = b[9];
+            a[6] = b[5];
+            a[7] = b[11];
+            a[8] = b[4];
+            a[9] = b[10];
+            a[10] = b[6];
+            a[11] = b[15];
+            a[12] = b[8];
+            a[13] = b[12];
+            a[14] = b[13];
+            a[15] = b[14];
+        }
+
+        #region Keygen stuff
+
+        /// <summary>
+        /// Key Scheduler.
+        /// </summary>
+        /// <param name="key">Key.</param>
+        /// <param name="iv">Initialization Vector.</param>
+        /// <param name="ci">Computation Iteration.</param>
+        /// <returns></returns>
+        internal byte[][] Schedule(in byte[] key, in byte[] iv, int ci)
         {
             var schedule = new byte[9][];
             byte[]? prevCtx = null;
@@ -302,7 +338,12 @@ namespace ARC
             return schedule;
         }
 
-        private void KSCR(ref byte[] sk, int c) // Key Schedule Column Rotator
+        /// <summary>
+        /// Key Schedule Column Rotator.
+        /// </summary>
+        /// <param name="sk">Subkey.</param>
+        /// <param name="c">Count.</param>
+        private void KSCR(ref byte[] sk, int c)
         {
             var skc = new byte[sk.Length];
             for (var i = 1; i <= c; i++)
@@ -323,9 +364,11 @@ namespace ARC
                 sk[12] = skc[8];
                 sk[13] = skc[5];
                 sk[14] = skc[6];
-                sk[16] = skc[15];
+                sk[15] = skc[15];
             }
         }
+
+        #endregion
 
         private byte[] GetBlock(byte[] data, int ci, ref bool computeFlag)
         {
@@ -344,7 +387,13 @@ namespace ARC
             return ctx;
         }
 
-        internal byte[] BlockComp(int s, byte[] a) // Block Compressor
+        /// <summary>
+        /// Block Compressor.
+        /// </summary>
+        /// <param name="s">Size. (Must be non-zero)</param>
+        /// <param name="a">Block.</param>
+        /// <returns></returns>
+        internal byte[] BlockComp(int s, byte[] a)
         {
             var o = new byte[s];
 
@@ -363,12 +412,10 @@ namespace ARC
                 bool s1fo = true;
                 o = resSbs[0];
                 foreach (var sb in resSbs)
-                {
                     if (!s1fo)
                         o = OTPArray(o, sb);
                     else
                         s1fo = false;
-                }
             }
             return o;
         }
@@ -378,13 +425,22 @@ namespace ARC
 
         #region Array Funcs
 
-        private byte[] ReverseArray(byte[] a)
+        private byte[] ReverseArray(in byte[] a) // for some reason this is modifying a
         {
-            Array.Reverse(a);
-            return a;
+            var o = new byte[a.Length];
+            for (int i = 0; i < a.Length; i++)
+                o[a.Length - 1 - i] = a[i];
+            return o;
         }
 
-        private byte[] FCArray(byte[] input, int s, int c) // Fast Copy array
+        /// <summary>
+        /// Fast Copy array.
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="s"></param>
+        /// <param name="c"></param>
+        /// <returns></returns>
+        private byte[] FCArray(byte[] input, int s, int c)
         {
             byte[] result = new byte[c];
             Array.Copy(input, s, result, 0, c);
@@ -399,7 +455,13 @@ namespace ARC
             return result;
         }
 
-        private byte[] OTPArray(byte[] input, byte[] key) // One Time Pad Array
+        /// <summary>
+        /// One Time Pad Array.
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        private byte[] OTPArray(byte[] input, byte[] key)
         {
             byte[] result = new byte[input.Length];
             for (int i = 0; i < input.Length; i++)
