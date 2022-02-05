@@ -263,7 +263,8 @@ namespace ARC
         /// <returns></returns>
         internal byte[] ARCMF(in byte[] state, in byte[][] keys)
         {
-            var output = state;
+            var output = new byte[state.Length];
+            state.CopyTo(output, 0);
             for (int i = 0; i < 9; i++)
             {
                 ARCLT.Permutate(ref output, ARCLT.MBLTv1, i);
