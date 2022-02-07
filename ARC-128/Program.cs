@@ -1,14 +1,15 @@
 ﻿#define deez_nuts
 using System;
 using c = System.Console;
-using ARC;
+using ADIS;
 using System.Security.Cryptography;
 using System.Security;
 using System.Text;
-
+using System.Drawing;
 
 namespace Sandbox
 {
+#pragma warning disable CA1416
     public class Program
     {
         //readonly static byte[] iv = new byte[16] { 0x2F, 0x31, 0x46, 0xF2, 0xA3, 0xAC, 0x4A, 0x6F, 0x85, 0x0, 0xB7, 0xD3, 0xF1, 0x12, 0x34, 0x58 };
@@ -27,6 +28,28 @@ namespace Sandbox
             foreach (var y in key)
                 c.Write(y.ToString("X"));
             c.WriteLine($" Size: {key.Length} bytes");
+
+            //c.WriteLine("Enter an input path:");
+            //var path = c.ReadLine();
+            //if (path == null)
+            //    throw new ArgumentNullException();
+
+            //c.WriteLine("Enter an output path:");
+            //var output = c.ReadLine();
+            //if (output == null)
+            //    throw new ArgumentNullException("output");
+
+            //var toEncImg = Image.FromFile(path);
+
+            //var encBytes = imageToByteArray(toEncImg);
+
+            //var encImg = arc.Encrypt(encBytes, key, iv);
+
+            //var outImg = byteArrayToImage(encImg);
+
+            //outImg.Save(path);
+
+            #region old sandboxes
 
             //c.WriteLine("\nIteration 0 test:");
             c.WriteLine("Enter string to encrypt:");
@@ -90,6 +113,22 @@ namespace Sandbox
 
             #endregion
             ; // this is here bc breakpoint?
+
+            #endregion
         }
+
+        //public static byte[] imageToByteArray(Image imageIn)
+        //{
+        //    MemoryStream ms = new MemoryStream();
+        //    imageIn.Save(ms, System.Drawing.Imaging.ImageFormat.Gif);
+        //    return ms.ToArray();
+        //}
+
+        //public static Image byteArrayToImage(byte[] byteArrayIn)
+        //{
+        //    MemoryStream ms = new MemoryStream(byteArrayIn);
+        //    Image returnImage = Image.FromStream(ms);
+        //    return returnImage;
+        //}
     }
 }

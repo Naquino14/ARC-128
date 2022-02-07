@@ -8,3 +8,4 @@
 *.editorconfig
 *.targets
 *.props
+*.suo

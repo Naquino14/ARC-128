@@ -2,7 +2,7 @@
 // Copyright 2022 Nathaniel Aquino, All rights reserved.
 // ARC Sub Bytes and Mix Bytes Lookup Tables
 
-namespace ARC
+namespace ADIS
 {
     internal class ARCLT
     {

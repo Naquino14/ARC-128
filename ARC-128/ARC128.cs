@@ -5,7 +5,7 @@
 using System.Text;
 using c = System.Console;
 
-namespace ARC
+namespace ADIS
 {
     public class ARC128
     {
