@@ -128,9 +128,7 @@ namespace ARC
             byte[] _key = new byte[16], _iv = new byte[16];
             if (!ReferenceEquals(key, null))
             {
-                var tocopy = Encoding.ASCII.GetBytes(key);
-                tocopy = BlockComp(16, tocopy);
-                Array.Copy(tocopy, 0, _key, 0, 16);
+                Array.Copy(BlockComp(16, Encoding.ASCII.GetBytes(key)), 0, _key, 0, 16);
                 this.key = _key;
             }
             if (!ReferenceEquals(iv, null))
@@ -138,7 +136,7 @@ namespace ARC
                 Array.Copy(BlockComp(16, Encoding.ASCII.GetBytes(iv)), 0, _iv, 0, 16);
                 this.iv = _iv;
             }
-            return _Encrypt(S2B(message), this.key ?? throw new ArgumentNullException(kEx), this.iv ??= GenerateIV());
+            return Encrypt(message);
         }
 
         public byte[] Encrypt(byte[] data)
@@ -161,7 +159,7 @@ namespace ARC
         {
             // TODO: Pad data with 0x0?
             int fbpp = (int)Math.Ceiling((double)(data.Length / 16)) + 1;
-            var output = new byte[fbpp];
+            var output = new byte[fbpp * readCount];
 
             /// for cfb, the IV gets tossed into the encryption first.
             /// the plaintext gets modded with the output, and then gets tossed into another encryption, 
@@ -207,8 +205,8 @@ namespace ARC
 
                 // get keys
                 var keys = Schedule(key, iv, computationIteration);
-                for (int i = 0; i < keys.Length; i++)
-                    PrintArray(keys[i], $"Scheduled key {i + 1}");
+                //for (int i = 0; i < keys.Length; i++)
+                //    PrintArray(keys[i], $"Scheduled key {i + 1}");
 
                 #endregion
 
@@ -227,15 +225,73 @@ namespace ARC
             return output;
         }
 
-        #pragma warning restore IDE0003
+#pragma warning restore IDE0003
         #endregion
 
         #region decryption
-        //#pragma warning disable IDE0003
+        #pragma warning disable IDE0003
 
-        //public byte[] Decrypt()
+        // ok so decryption is just encryption but with an added step of removing extraneous bytes
 
-        //#pragma warning restore IDE0003
+        /// <summary>
+        /// TODO: comments
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        public byte[] Decrypt() { return REMED(_Encrypt(this.data ?? throw new ArgumentNullException(dEx), this.key ?? throw new ArgumentNullException(kEx), this.iv ??= GenerateIV())); }
+
+        /// <summary>
+        /// TODO: comments
+        /// </summary>
+        /// <param name="message"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        public byte[] Decrypt(string message) 
+        { return REMED(_Encrypt(S2B(message), this.key ?? throw new ArgumentNullException(kEx), this.iv ??= GenerateIV())); }
+
+        /// <summary>
+        /// TODO: comments
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="key"></param>
+        /// <param name="iv"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException"></exception>
+        public byte[] Decrypt(string message, byte[]? key = null, byte[]? iv = null)
+        { return REMED(_Encrypt(S2B(message), key ?? this.key ?? throw new ArgumentException(kEx), iv ?? (this.iv ??= GenerateIV()))); }
+
+        /// <summary>
+        /// TODO: comments
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="key"></param>
+        /// <param name="iv"></param>
+        /// <returns></returns>
+        public byte[] Decrypt(string message, string? key = null, string? iv = null)
+        {
+            byte[] _key = new byte[16], _iv = new byte[16];
+            if (!ReferenceEquals(key, null))
+            {
+                Array.Copy(BlockComp(16, Encoding.ASCII.GetBytes(key)), 0, _key, 0, 16);
+                this.key = _key;
+            }
+            if (!ReferenceEquals(iv, null))
+            {
+                Array.Copy(BlockComp(16, Encoding.ASCII.GetBytes(iv)), 0, _iv, 0, 16);
+                this.iv = _iv;
+            }
+            return Decrypt(message);
+        }
+
+        /// <summary>
+        /// Remove extraneous data.
+        /// </summary>
+        private byte[] REMED(in byte[] uData)
+        {
+            throw new NotImplementedException();
+        }
+
+        #pragma warning restore IDE0003
         #endregion
 
         #region generators
@@ -261,7 +317,7 @@ namespace ARC
         /// <param name="state">Initial state, is either the IV or the previous contextual block.</param>
         /// <param name="keys"></param>
         /// <returns></returns>
-        internal byte[] ARCMF(in byte[] state, in byte[][] keys)
+        private byte[] ARCMF(in byte[] state, in byte[][] keys)
         {
             var output = new byte[state.Length];
             state.CopyTo(output, 0);
@@ -310,7 +366,7 @@ namespace ARC
         /// <param name="iv">Initialization Vector.</param>
         /// <param name="ci">Computation Iteration.</param>
         /// <returns></returns>
-        internal byte[][] Schedule(in byte[] key, in byte[] iv, int ci)
+        private byte[][] Schedule(in byte[] key, in byte[] iv, int ci)
         {
             var schedule = new byte[9][];
             byte[]? prevCtx = null;
@@ -394,7 +450,7 @@ namespace ARC
         /// <param name="s">Size. (Must be non-zero)</param>
         /// <param name="a">Block.</param>
         /// <returns></returns>
-        internal byte[] BlockComp(int s, byte[] a)
+        private byte[] BlockComp(int s, byte[] a)
         {
             var o = new byte[s];
 
