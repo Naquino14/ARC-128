@@ -29,18 +29,32 @@ namespace Sandbox
             c.WriteLine($" Size: {key.Length} bytes");
 
             //c.WriteLine("\nIteration 0 test:");
-
-            var testData = "This is random data lol eyufucbgfkuyvjsbgdfuikxkhfvbaskiuzghszdkfighawoieuskjghrfpiWUGEPI7FGwyWP9YUERP98SYGPIAHYEPSRDGYUAPEIHY";
+            c.WriteLine("Enter string to encrypt:");
+            var testData = c.ReadLine();
             //c.WriteLine($"Test Data: {testData}\nTest Data length: {testData.Length}");
+            c.WriteLine($"String to encrypt: {testData}");
 
-            var enc = arc.Encrypt(testData, key, iv);
+            var enc = arc.Encrypt(testData ??= "nul", key, iv);
 
-            arc.PrintArray(enc, "Encryption result");
+            ARC128.PrintArray(enc, "Encryption result");
             c.WriteLine($"Encrypted data size (bytes): {enc.Length}");
 
             c.WriteLine("Attemting decryption...");
 
-            
+            var dec = arc.Decrypt(enc, key, iv);
+
+            ARC128.PrintArray(dec, "Raw decrypted data");
+            var sData = Encoding.ASCII.GetString(dec);
+            c.WriteLine($"Decrypted data size (bytes): {dec.Length} | Data: {sData}");
+
+            c.WriteLine($"Encryption and decryption {(String.Equals(testData, sData) ? "Success!" : "Fail!")}");
+
+            //byte[] tst = new byte[] { 0x0, 0x35, 0x37, 0xff, 0xd6, 0x0, 0x0, 0x0, 0x0 };
+            //var arc = new ARC128();
+            //var o = arc.REMED(tst);
+            //arc.PrintArray(o);
+
+
 
             //c.WriteLine("\nIteration 1 test:");
             //var result2 = arc.Encrypt(testData, key, iv);

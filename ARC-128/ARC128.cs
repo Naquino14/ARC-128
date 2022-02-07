@@ -17,6 +17,7 @@ namespace ARC
         public byte[]? data { get; set; } // i didnt want to work with nullables, but im gonna try anyway
         public byte[]? key { get; private set; } // ok that wasnt so bad
         public byte[]? iv { get; private set; }
+        public bool removeExtraneousData = true;
 
         #endregion
 
@@ -38,6 +39,8 @@ namespace ARC
             KSRcon9 = 0xAB;
 
         private readonly byte[] KSRcon = new byte[] { KSRcon1, KSRcon2, KSRcon3, KSRcon4, KSRcon5, KSRcon6, KSRcon7, KSRcon8, KSRcon9 };
+
+        private readonly byte[] extreneous = new byte[16] { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
 
         #endregion
 
@@ -140,7 +143,7 @@ namespace ARC
         }
 
         public byte[] Encrypt(byte[] data)
-        { return _Encrypt(data, this.key ?? throw new ArgumentNullException(), this.iv ??= GenerateIV()); }
+        { return _Encrypt(data, this.key ?? throw new ArgumentNullException(kEx), this.iv ??= GenerateIV()); }
 
         /// <summary>
         /// Encrypts supplied data using a supplied key and a supplied or auto-generated initialization vector.
@@ -201,6 +204,9 @@ namespace ARC
 
                 var ctx = GetBlock(data, computationIteration, ref computeFlag); // auto pads with 0x0? i dont think i told it to do that
 
+                if (!computeFlag && Enumerable.SequenceEqual(ctx, extreneous))
+                    break;
+
                 PrintArray(ctx, $"CTX for round {computationIteration} | Length: {ctx.Length}");
 
                 // get keys
@@ -225,7 +231,7 @@ namespace ARC
             return output;
         }
 
-#pragma warning restore IDE0003
+        #pragma warning restore IDE0003
         #endregion
 
         #region decryption
@@ -284,11 +290,38 @@ namespace ARC
         }
 
         /// <summary>
+        /// TODO: comments
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        public byte[] Decrypt(byte[] data)
+        { return REMED(_Encrypt(data, this.key ?? throw new ArgumentNullException(kEx), this.iv ??= GenerateIV())); }
+
+        public byte[] Decrypt(byte[] data, byte[]? key = null, byte[]? iv = null)
+        { return REMED(_Encrypt(data, key ?? this.key ?? throw new ArgumentNullException(kEx), iv ?? (this.iv ??= GenerateIV()))); }
+
+        /// <summary>
         /// Remove extraneous data.
         /// </summary>
         private byte[] REMED(in byte[] uData)
         {
-            throw new NotImplementedException();
+            if (removeExtraneousData)
+            {
+                int count = uData.Length;
+                byte[] o;
+                for (int i = uData.Length - 1; i >= 0; i--)
+                    if (uData[i] == 0x0)
+                        count--;
+                    else
+                        break;
+                o = new byte[count];
+                Array.Copy(uData, o, count);
+
+                return o;
+            }
+            else
+                return uData;
         }
 
         #pragma warning restore IDE0003
@@ -526,7 +559,7 @@ namespace ARC
             return result;
         }
 
-        internal void PrintArray(byte[] array, string name = "")
+        internal static void PrintArray(byte[] array, string name = "")
         {
             if (name != "")
                 Console.Write($"{name}: ");
