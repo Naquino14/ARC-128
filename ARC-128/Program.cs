@@ -29,6 +29,8 @@ namespace Sandbox
                 c.Write(y.ToString("X"));
             c.WriteLine($" Size: {key.Length} bytes");
 
+            #region expirimental sandboxes
+
             //c.WriteLine("Enter an input path:");
             //var path = c.ReadLine();
             //if (path == null)
@@ -49,6 +51,8 @@ namespace Sandbox
 
             //outImg.Save(path);
 
+            #endregion
+
             #region old sandboxes
 
             //c.WriteLine("\nIteration 0 test:");
@@ -62,7 +66,7 @@ namespace Sandbox
             ARC128.PrintArray(enc, "Encryption result");
             c.WriteLine($"Encrypted data size (bytes): {enc.Length}");
 
-            c.WriteLine("Attemting decryption...");
+            c.WriteLine("Attempting decryption...");
 
             var dec = arc.Decrypt(enc, key, iv);
 

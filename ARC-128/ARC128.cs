@@ -1,4 +1,5 @@
 ﻿#pragma skideeSkidoo wowie
+#define ARC_DEBUG
 // Copyright 2022 Nathaniel Aquino, All rights reserved.
 // ARC128 version 1
 
@@ -183,10 +184,11 @@ namespace ADIS
             /// OTPArray(d, scheduledKey)            => f | Mix Key
             /// repeat                               => a
 
+            #if ARC_DEBUG
             PrintArray(data, "Incoming data");
 
             c.WriteLine($"Data size: {data.Length} | Total FB: {(int)Math.Ceiling((double)(data.Length / 16))}");
-
+            #endif
             byte[]? prevCtx = null;
             byte[] mf;
             
@@ -206,9 +208,9 @@ namespace ADIS
 
                 if (!computeFlag && Enumerable.SequenceEqual(ctx, extreneous))
                     break;
-
+                #if ARC_DEBUG
                 PrintArray(ctx, $"CTX for round {computationIteration} | Length: {ctx.Length}");
-
+                #endif
                 // get keys
                 var keys = Schedule(key, iv, computationIteration);
                 //for (int i = 0; i < keys.Length; i++)
@@ -217,7 +219,7 @@ namespace ADIS
                 #endregion
 
                 // get MF results
-                mf = ARCMF(prevCtx ?? iv, keys); // at CI 0, prevCtx is null, so it defaults to iv like its supposed to...
+                mf = ARCMF(prevCtx ?? iv, keys, computationIteration); // at CI 0, prevCtx is null, so it defaults to iv like its supposed to...
 
                 // otp results with data ctx, and toss it into the output
                 Array.Copy(OTPArray(ctx, mf), 0, output, computationIteration * 16, 16); 
@@ -350,17 +352,21 @@ namespace ADIS
         /// <param name="state">Initial state, is either the IV or the previous contextual block.</param>
         /// <param name="keys"></param>
         /// <returns></returns>
-        private byte[] ARCMF(in byte[] state, in byte[][] keys)
+        private byte[] ARCMF(in byte[] state, in byte[][] keys, int ci)
         {
             var output = new byte[state.Length];
             state.CopyTo(output, 0);
             for (int i = 0; i < 9; i++)
             {
                 ARCLT.Permutate(ref output, ARCLT.MBLTv1, i);
+                //output = BlockRaise(output, ci);
                 ARCBMGR(ref output);
                 ARCLT.Permutate(ref output, ARCLT.SBLTv1, i);
                 output = OTPArray(output, keys[i]);
             }
+            #if ARC_DEBUG
+            PrintArray(output, "MF Results");
+            #endif
             return output; 
         }
 
@@ -388,6 +394,15 @@ namespace ADIS
             a[13] = b[12];
             a[14] = b[13];
             a[15] = b[14];
+        }
+
+        private byte[] BlockRaise(byte[] a, int ci)
+        {
+            var result = new byte[a.Length];
+            int mod = ci * 8723 % 1109;
+            for (int i = 0; i < a.Length; i++)
+                result[i] = (byte)(EBSMK(a[i], (i + 1 >= a.Length) ? a[i - 1] : a[i + 1], (mod == 0) ? 101 : mod) % 255);
+            return result;
         }
 
         #region Keygen stuff
@@ -581,6 +596,29 @@ namespace ADIS
 
         private byte[] RotLeft(byte[] a, int amount)
         { return a.Skip(amount).Concat(a.Take(amount)).ToArray(); }
+
+        #endregion
+
+        #region other functions
+
+        /// <summary>
+        /// Exponentation By Squaring Mod K
+        /// </summary>
+        public static int EBSMK(int x, int n, int k)
+        {
+            int res = 1;
+            x %= k;
+            if (x == 0)
+                return 0;
+            while (n > 0)
+            {
+                if ((n & 1) != 0)
+                    res = res * x % k;
+                n >>= 1;
+                x = x * x % k;
+            }
+            return res;
+        }
 
         #endregion
 
