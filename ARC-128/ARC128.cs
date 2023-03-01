@@ -80,11 +80,11 @@ namespace ADIS
         /// <param name="iv">The IV string used when encrypting with ARC-128. This propery is randomly generated if the parameter is null at the time ARC128() is called. IVs that are smaller than 16 bytes will be padded, and IVs larger than 16 bytes will be compressed into 16 bytes.</param>
         public ARC128(string data, string? key = null, string? iv = null)
         {
-            if (!ReferenceEquals(key, null))
+            if (key is not null)
                 this.key = Encoding.ASCII.GetBytes(key);
             else
                 this.key = GenerateKey();
-            if (!ReferenceEquals(iv, null))
+            if (iv is not null)
                 this.iv = Encoding.ASCII.GetBytes(iv);
             else
                 this.iv = GenerateIV();
