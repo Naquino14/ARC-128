@@ -3,6 +3,7 @@
 // Copyright 2022 Nathaniel Aquino, All rights reserved.
 // ARC128 version 1
 
+using System.Security.Cryptography;
 using System.Text;
 using c = System.Console;
 
@@ -90,7 +91,7 @@ namespace ADIS
                 this.iv = GenerateIV();
             this.data = Encoding.ASCII.GetBytes(data);
         }
-
+        
 #pragma warning restore IDE0003
         #endregion
 
@@ -333,9 +334,11 @@ namespace ADIS
 
         public byte[] GenerateIV()
         {
-            Random random = new Random();
-            byte[] iv = new byte[16];
-            random.NextBytes(iv);
+            byte[] iv;
+            using (var random = RandomNumberGenerator.Create()) {
+                iv = new byte[16];
+                random.GetBytes(iv);
+            }
             return iv;
         }
 
