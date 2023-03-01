@@ -1,5 +1,4 @@
-﻿#pragma skideeSkidoo wowie
-#define ARC_DEBUG
+﻿#define ARC_DEBUG
 // Copyright 2022 Nathaniel Aquino, All rights reserved.
 // ARC128 version 1
 
@@ -16,9 +15,9 @@ namespace ADIS
         /// <summary>
         /// The data property of ARC-128. This is what gets encrypted unless data is supplied as a parameter.
         /// </summary>
-        public byte[]? data { get; set; } // i didnt want to work with nullables, but im gonna try anyway
-        public byte[]? key { get; private set; } // ok that wasnt so bad
-        public byte[]? iv { get; private set; }
+        public byte[]? Data { get; set; } // i didnt want to work with nullables, but im gonna try anyway
+        public byte[]? Key { get; private set; } // ok that wasnt so bad
+        public byte[]? IV { get; private set; }
         public bool removeExtraneousData = true;
 
         #endregion
@@ -61,8 +60,8 @@ namespace ADIS
         /// <param name="iv">The IV string used when encrypting with ARC-128. This propery is randomly generated if the parameter is null at the time ARC128() is called. IVs that are smaller than 16 bytes will be padded, and IVs larger than 16 bytes will be compressed into 16 bytes.</param>
         public ARC128(byte[]? key = null, byte[]? iv = null)
         {
-            this.key = key;
-            this.iv = iv;
+            this.Key = key;
+            this.IV = iv;
         }
 
         /// <summary>
@@ -71,7 +70,7 @@ namespace ADIS
         /// <param name="data">The data to be encrypted with ARC-128. All data gets transformed into an array of bytes before being encrypted.</param>
         /// <param name="key">The key used when encrypting with ARC-128.This property is randomly generated if the parameter is null at the time ARC128() is called. Keys that are smaller than 16 bytes will be padded, and Keys larger than 16 bytes will be compressed into 16 bytes</param>
         /// <param name="iv">The Initialization Vector used when encrypting with ARC-128. This property is randomly generated if the parameter is null at the time ARC128() is called. IVs that are smaller than 16 bytes will be padded, and IVs larger than 16 bytes will be compressed into 16 bytes</param>
-        public ARC128(byte[] data, byte[]? key = null, byte[]? iv = null) : this(key, iv) => this.data = data;
+        public ARC128(byte[] data, byte[]? key = null, byte[]? iv = null) : this(key, iv) => this.Data = data;
 
         /// <summary>
         /// Creates a new instance of ARC128, and allows for string representations of arguments to be passed in.
@@ -82,14 +81,14 @@ namespace ADIS
         public ARC128(string data, string? key = null, string? iv = null)
         {
             if (key is not null)
-                this.key = Encoding.ASCII.GetBytes(key);
+                this.Key = Encoding.ASCII.GetBytes(key);
             else
-                this.key = GenerateKey();
+                this.Key = GenerateKey();
             if (iv is not null)
-                this.iv = Encoding.ASCII.GetBytes(iv);
+                this.IV = Encoding.ASCII.GetBytes(iv);
             else
-                this.iv = GenerateIV();
-            this.data = Encoding.ASCII.GetBytes(data);
+                this.IV = GenerateIV();
+            this.Data = Encoding.ASCII.GetBytes(data);
         }
         
 #pragma warning restore IDE0003
@@ -106,7 +105,8 @@ namespace ADIS
         /// </summary>
         /// <returns>Data encrypted using ARC-128.</returns>
         /// <exception cref="ArgumentNullException">Exception thrown when data or the key property is empty.</exception>
-        public byte[] Encrypt() /* => */{ return _Encrypt(this.data ?? throw new ArgumentNullException(dEx), this.key ?? throw new ArgumentNullException(kEx), this.iv ??= GenerateIV()); } // lambda in spirit 😔
+        public byte[] Encrypt()
+            => InternalEncrypt(this.Data ?? throw new ArgumentNullException(dEx), this.Key ?? throw new ArgumentNullException(nameof(Key), kEx), this.IV ??= GenerateIV());
 
         /// <summary>
         /// Encrypts the supplied string using a supplied key and a supplied or auto-generated initialization vector.
@@ -115,7 +115,7 @@ namespace ADIS
         /// <returns>Data encrypted using ARC-128.</returns>
         /// <exception cref="ArgumentNullException">Exception thrown when data or the key property is empty.</exception>
         public byte[] Encrypt(string message)
-        { return _Encrypt(S2B(message), this.key ?? throw new ArgumentNullException(kEx), this.iv ??= GenerateIV()); }
+            => InternalEncrypt(S2B(message), this.Key ?? throw new ArgumentNullException(nameof(Key), kEx), this.IV ??= GenerateIV());
 
         /// <summary>
         /// Encrypts the supplied string using the supplied key and the supplied initialization vector.
@@ -126,26 +126,26 @@ namespace ADIS
         /// <returns>Data encrypted using ARC-128.</returns>
         /// <exception cref="ArgumentNullException">Exception thrown when data or the key property is empty.</exception>
         public byte[] Encrypt(string message, byte[]? key = null, byte[]? iv = null)
-        { return _Encrypt(S2B(message), key ?? this.key ?? throw new ArgumentNullException(kEx), iv ?? (this.iv ??= GenerateIV())); }
+            => InternalEncrypt(S2B(message), key ?? this.Key ?? throw new ArgumentNullException(nameof(key), kEx), iv ?? (this.IV ??= GenerateIV()));
 
         public byte[] Encrypt(string message, string? key = null, string? iv = null)
         {
             byte[] _key = new byte[16], _iv = new byte[16];
-            if (!ReferenceEquals(key, null))
+            if (key is not null)
             {
                 Array.Copy(BlockComp(16, Encoding.ASCII.GetBytes(key)), 0, _key, 0, 16);
-                this.key = _key;
+                this.Key = _key;
             }
-            if (!ReferenceEquals(iv, null))
+            if (iv is not null)
             {
                 Array.Copy(BlockComp(16, Encoding.ASCII.GetBytes(iv)), 0, _iv, 0, 16);
-                this.iv = _iv;
+                this.IV = _iv;
             }
             return Encrypt(message);
         }
 
         public byte[] Encrypt(byte[] data)
-        { return _Encrypt(data, this.key ?? throw new ArgumentNullException(kEx), this.iv ??= GenerateIV()); }
+            => InternalEncrypt(data, this.Key ?? throw new ArgumentNullException(nameof(Key), kEx), this.IV ??= GenerateIV());
 
         /// <summary>
         /// Encrypts supplied data using a supplied key and a supplied or auto-generated initialization vector.
@@ -156,11 +156,11 @@ namespace ADIS
         /// <returns>Data encrypted using ARC-128.</returns>
         /// <exception cref="ArgumentNullException">Exception thrown when data or the key property is empty.</exception>
         public byte[] Encrypt(byte[] data, byte[]? key = null, byte[]? iv = null)
-        { return _Encrypt(data, key ?? this.key ?? throw new ArgumentNullException(kEx), iv ?? (this.iv ??= GenerateIV())); }
-
+            => InternalEncrypt(data, key ?? this.Key ?? throw new ArgumentNullException(nameof(Key), kEx), iv ?? (this.IV ??= GenerateIV()));
+        
         #endregion
 
-        private byte[] _Encrypt(in byte[] data, in byte[] key, in byte[] iv) // cfb type encryption
+        private byte[] InternalEncrypt(in byte[] data, in byte[] key, in byte[] iv) // cfb type encryption
         {
             // TODO: Pad data with 0x0?
             int fbpp = (int)Math.Ceiling((double)(data.Length / 16)) + 1;
@@ -247,7 +247,7 @@ namespace ADIS
         /// </summary>
         /// <returns></returns>
         /// <exception cref="ArgumentNullException"></exception>
-        public byte[] Decrypt() { return REMED(_Encrypt(this.data ?? throw new ArgumentNullException(dEx), this.key ?? throw new ArgumentNullException(kEx), this.iv ??= GenerateIV())); }
+        public byte[] Decrypt() { return REMED(InternalEncrypt(this.Data ?? throw new ArgumentNullException(dEx), this.Key ?? throw new ArgumentNullException(nameof(Key), kEx), this.IV ??= GenerateIV())); }
 
         /// <summary>
         /// TODO: comments
@@ -256,7 +256,7 @@ namespace ADIS
         /// <returns></returns>
         /// <exception cref="ArgumentNullException"></exception>
         public byte[] Decrypt(string message) 
-        { return REMED(_Encrypt(S2B(message), this.key ?? throw new ArgumentNullException(kEx), this.iv ??= GenerateIV())); }
+        { return REMED(InternalEncrypt(S2B(message), this.Key ?? throw new ArgumentNullException(nameof(Key), kEx), this.IV ??= GenerateIV())); }
 
         /// <summary>
         /// TODO: comments
@@ -267,7 +267,7 @@ namespace ADIS
         /// <returns></returns>
         /// <exception cref="ArgumentException"></exception>
         public byte[] Decrypt(string message, byte[]? key = null, byte[]? iv = null)
-        { return REMED(_Encrypt(S2B(message), key ?? this.key ?? throw new ArgumentException(kEx), iv ?? (this.iv ??= GenerateIV()))); }
+        { return REMED(InternalEncrypt(S2B(message), key ?? this.Key ?? throw new ArgumentException(kEx), iv ?? (this.IV ??= GenerateIV()))); }
 
         /// <summary>
         /// TODO: comments
@@ -279,15 +279,15 @@ namespace ADIS
         public byte[] Decrypt(string message, string? key = null, string? iv = null)
         {
             byte[] _key = new byte[16], _iv = new byte[16];
-            if (!ReferenceEquals(key, null))
+            if (key is not null)
             {
                 Array.Copy(BlockComp(16, Encoding.ASCII.GetBytes(key)), 0, _key, 0, 16);
-                this.key = _key;
+                this.Key = _key;
             }
-            if (!ReferenceEquals(iv, null))
+            if (iv is not null)
             {
                 Array.Copy(BlockComp(16, Encoding.ASCII.GetBytes(iv)), 0, _iv, 0, 16);
-                this.iv = _iv;
+                this.IV = _iv;
             }
             return Decrypt(message);
         }
@@ -299,10 +299,10 @@ namespace ADIS
         /// <returns></returns>
         /// <exception cref="ArgumentNullException"></exception>
         public byte[] Decrypt(byte[] data)
-        { return REMED(_Encrypt(data, this.key ?? throw new ArgumentNullException(kEx), this.iv ??= GenerateIV())); }
+        { return REMED(InternalEncrypt(data, this.Key ?? throw new ArgumentNullException(nameof(Key), kEx), this.IV ??= GenerateIV())); }
 
         public byte[] Decrypt(byte[] data, byte[]? key = null, byte[]? iv = null)
-        { return REMED(_Encrypt(data, key ?? this.key ?? throw new ArgumentNullException(kEx), iv ?? (this.iv ??= GenerateIV()))); }
+        { return REMED(InternalEncrypt(data, key ?? this.Key ?? throw new ArgumentNullException(nameof(Key), kEx), iv ?? (this.IV ??= GenerateIV()))); }
 
         /// <summary>
         /// Remove extraneous data.
@@ -332,7 +332,7 @@ namespace ADIS
 
         #region generators
 
-        public byte[] GenerateIV()
+        public static byte[] GenerateIV()
         {
             byte[] iv;
             using (var random = RandomNumberGenerator.Create()) {
@@ -342,8 +342,7 @@ namespace ADIS
             return iv;
         }
 
-        public byte[] GenerateKey()
-        { return GenerateIV(); }
+        public static byte[] GenerateKey() => GenerateIV();
 
         #endregion
 
@@ -355,7 +354,7 @@ namespace ADIS
         /// <param name="state">Initial state, is either the IV or the previous contextual block.</param>
         /// <param name="keys"></param>
         /// <returns></returns>
-        private byte[] ARCMF(in byte[] state, in byte[][] keys, int ci)
+        private static byte[] ARCMF(in byte[] state, in byte[][] keys, int ci)
         {
             var output = new byte[state.Length];
             state.CopyTo(output, 0);
@@ -377,7 +376,7 @@ namespace ADIS
         /// Byte Merry Go Round
         /// </summary>
         /// <param name="a"></param>
-        private void ARCBMGR(ref byte[] a)
+        private static void ARCBMGR(ref byte[] a)
         {
             var b = new byte[a.Length];
             Array.Copy(a, 0, b, 0, a.Length);
@@ -399,7 +398,7 @@ namespace ADIS
             a[15] = b[14];
         }
 
-        private byte[] BlockRaise(byte[] a, int ci)
+        private static byte[] BlockRaise(byte[] a, int ci)
         {
             var result = new byte[a.Length];
             int mod = ci * 8723 % 1109;
@@ -451,7 +450,7 @@ namespace ADIS
         /// </summary>
         /// <param name="sk">Subkey.</param>
         /// <param name="c">Count.</param>
-        private void KSCR(ref byte[] sk, int c)
+        private static void KSCR(ref byte[] sk, int c)
         {
             var skc = new byte[sk.Length];
             for (var i = 1; i <= c; i++)
@@ -478,7 +477,7 @@ namespace ADIS
 
         #endregion
 
-        private byte[] GetBlock(byte[] data, int ci, ref bool computeFlag)
+        private static byte[] GetBlock(byte[] data, int ci, ref bool computeFlag)
         {
             int targetIndex = ci * readCount,
                     toRead = data.Length - readCount * ci,
@@ -501,7 +500,7 @@ namespace ADIS
         /// <param name="s">Size. (Must be non-zero)</param>
         /// <param name="a">Block.</param>
         /// <returns></returns>
-        private byte[] BlockComp(int s, byte[] a)
+        private static byte[] BlockComp(int s, byte[] a)
         {
             var o = new byte[s];
 
@@ -528,12 +527,12 @@ namespace ADIS
             return o;
         }
 
-        private byte[] S2B(string a) // String 2 Byte
+        private static byte[] S2B(string a) // String 2 Byte
         { return Encoding.ASCII.GetBytes(a); }
 
         #region Array Funcs
 
-        private byte[] ReverseArray(in byte[] a) // for some reason this is modifying a
+        private static byte[] ReverseArray(in byte[] a) // for some reason this is modifying a
         {
             var o = new byte[a.Length];
             for (int i = 0; i < a.Length; i++)
@@ -548,14 +547,14 @@ namespace ADIS
         /// <param name="s"></param>
         /// <param name="c"></param>
         /// <returns></returns>
-        private byte[] FCArray(byte[] input, int s, int c)
+        private static byte[] FCArray(byte[] input, int s, int c)
         {
             byte[] result = new byte[c];
             Array.Copy(input, s, result, 0, c);
             return result;
         }
 
-        private byte[] AddArray(byte[] a, byte[] b)
+        private static byte[] AddArray(byte[] a, byte[] b)
         {
             byte[] result = new byte[a.Length + b.Length];
             a.CopyTo(result, 0);
@@ -569,7 +568,7 @@ namespace ADIS
         /// <param name="input"></param>
         /// <param name="key"></param>
         /// <returns></returns>
-        private byte[] OTPArray(byte[] input, byte[] key)
+        private static byte[] OTPArray(byte[] input, byte[] key)
         {
             byte[] result = new byte[input.Length];
             for (int i = 0; i < input.Length; i++)
@@ -586,7 +585,7 @@ namespace ADIS
             Console.WriteLine();
         }
 
-        private byte[] CreatePadArray(byte b, int c)
+        private static byte[] CreatePadArray(byte b, int c)
         {
             byte[] result = new byte[c];
             for (int i = 0; i < c; i++)
@@ -594,10 +593,7 @@ namespace ADIS
             return result;
         }
 
-        private byte[] RotRight(byte[] a, int amount)
-        { return a.Skip(a.Length - amount).Concat(a.Take(a.Length - amount)).ToArray(); }
-
-        private byte[] RotLeft(byte[] a, int amount)
+        private static byte[] RotLeft(byte[] a, int amount)
         { return a.Skip(amount).Concat(a.Take(amount)).ToArray(); }
 
         #endregion
